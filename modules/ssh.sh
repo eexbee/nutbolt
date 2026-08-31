@@ -56,19 +56,19 @@ ssh_restart() {
 ssh_socket_set_ports() { # args: ports...
     local ports=("$@") dropdir="/etc/systemd/system/${SSH_UNIT}.socket.d"
     mkdir -p "$dropdir"
-    if [[ ! -f "$dropdir/hardening-ports.conf" ]]; then
-        track_created "$dropdir/hardening-ports.conf"
+    if [[ ! -f "$dropdir/nutbolt-ports.conf" ]]; then
+        track_created "$dropdir/nutbolt-ports.conf"
     fi
     {
         echo "[Socket]"
-        echo "# managed by server-hardening"
+        echo "# managed by nutbolt"
         echo "ListenStream="
         local p
         for p in "${ports[@]}"; do
             echo "ListenStream=0.0.0.0:${p}"
             echo "ListenStream=[::]:${p}"
         done
-    } > "$dropdir/hardening-ports.conf"
+    } > "$dropdir/nutbolt-ports.conf"
     run_quiet systemctl daemon-reload
     log_info "ssh.socket ports: ${ports[*]}"
 }
@@ -96,9 +96,15 @@ module_ssh_run() {
     max_tries="$(config_get "ssh.max_auth_tries" "5")"
     new_port="$(config_get "ssh.port" "")"
 
-    if [[ -z "$new_port" && "$INTERACTIVE" == "1" ]]; then
-        new_port="$(prompt_until_valid "Enter new SSH port (current: $current_port)" validate_port "$current_port" \
-            "Port must be between 1 and 65535")"
+    if [[ "$INTERACTIVE" == "1" ]]; then
+        local cfg_hint="" answer
+        [[ -n "$new_port" ]] && cfg_hint=" (config default: $new_port)"
+        while true; do
+            answer="$(prompt "Enter new SSH port (empty = keep $current_port)${cfg_hint}" "")"
+            [[ -z "$answer" ]] && { new_port=""; break; }
+            if validate_port "$answer"; then new_port="$answer"; break; fi
+            log_error "Port must be between 1 and 65535"
+        done
     fi
     [[ -z "$new_port" ]] && { log_warn "No SSH port configured - keeping $current_port"; new_port="$current_port"; }
 
@@ -125,16 +131,21 @@ module_ssh_run() {
         fi
         ssh_restart
         sleep 1
-        _ssh_show_test_instructions "$new_port"
+
+        local server_ip login_user
+        server_ip="$(_ssh_server_ip)"
+        [[ -z "$server_ip" ]] && server_ip="<server-ip>"
+        login_user="${ADMIN_USERNAME:-root}"
+        _ssh_show_test_instructions "$new_port" "$server_ip" "$login_user"
 
         local confirmed="no"
         if [[ "$INTERACTIVE" == "1" ]]; then
-            confirm "Can you successfully log in with: ssh ${ADMIN_USERNAME:-<admin-user>}@<server-ip> -p $new_port ?" "no"
+            confirm "Can you successfully log in with: ssh ${login_user}@${server_ip} -p $new_port ?" "no"
             confirmed=$?
         else
             # non-interactive: assume tested (operator is responsible)
             log_warn "Non-interactive mode: skipping login confirmation prompt"
-            log_warn "VERIFY NOW: ssh ${ADMIN_USERNAME:-<admin-user>}@$(hostname -I 2>/dev/null | awk '{print $1}') -p $new_port"
+            log_warn "VERIFY NOW: ssh ${login_user}@${server_ip} -p $new_port"
             confirmed=0
         fi
 
@@ -217,18 +228,37 @@ module_ssh_lockdown() {
     log_ok "  Port: $SSH_NEW_PORT | MaxAuthTries: $(config_get 'ssh.max_auth_tries' 5) | RootLogin: $root_state | PasswordAuth: $pass_state"
 }
 
-_ssh_show_test_instructions() {
-    local port="$1"
-    local ip
-    ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
-    [[ -z "$ip" ]] && ip="<server-ip>"
+_ssh_server_ip() { # resolves once per run (public IP preferred), cached in SERVER_IP
+    if [[ -z "${SERVER_IP+x}" ]]; then
+        SERVER_IP="$(detect_server_ip)"
+        export SERVER_IP
+        if [[ -n "$SERVER_IP" ]]; then
+            log_info "Server address for SSH verification: $SERVER_IP"
+        else
+            log_warn "Could not detect the server IP - replace <server-ip> manually"
+        fi
+    fi
+    echo "${SERVER_IP}"
+}
+
+_ssh_show_test_instructions() { # <port> <ip> <login_user>
+    local port="$1" ip="$2" login_user="$3"
+    local auth_hint
+    if [[ -z "${ADMIN_USERNAME:-}" ]]; then
+        auth_hint="No admin user was created - log in as root (still enabled at this point)."
+    elif [[ "${ADMIN_KEY_INSTALLED:-0}" == "1" ]]; then
+        auth_hint="Authenticate with your SSH key (installed for '$login_user')."
+    else
+        auth_hint="No SSH key was installed - authenticate with the password you set for '$login_user'."
+    fi
     cat <<EOF
 
 $(printf '\033[0;33m================================================================================\033[0m')
   IMPORTANT: Open ANOTHER terminal and test the new SSH port BEFORE continuing:
 
-      ssh ${ADMIN_USERNAME:-<admin-user>}@${ip} -p ${port}
+      ssh ${login_user}@${ip} -p ${port}
 
+  ${auth_hint}
   Keep your current session open. Only confirm when the new login WORKS.
 $(printf '\033[0;33m================================================================================\033[0m')
 

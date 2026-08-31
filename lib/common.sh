@@ -107,6 +107,22 @@ in_list() { # in_list "item" "list..."
 
 human_size() { numfmt --to=iec "$1" 2>/dev/null || echo "$1"; }
 
+# Best-effort detection of the address an operator would use to reach this
+# server: public IP first (external service), then first interface address.
+# Requires: lib/validation.sh (validate_ip) at call time.
+detect_server_ip() {
+    local ip=""
+    if cmd_exists curl; then
+        ip="$(curl -fsS -m 5 https://api.ipify.org 2>/dev/null || true)"
+        validate_ip "$ip" || ip="$(curl -fsS -m 5 https://ifconfig.me 2>/dev/null || true)"
+    elif cmd_exists wget; then
+        ip="$(wget -qO- -T 5 https://api.ipify.org 2>/dev/null || true)"
+    fi
+    validate_ip "$ip" || ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    validate_ip "$ip" || ip=""
+    echo "$ip"
+}
+
 # Non-fatal error counter used by install.sh summary
 register_error() {
     ERRORS_COUNT=$((ERRORS_COUNT + 1))

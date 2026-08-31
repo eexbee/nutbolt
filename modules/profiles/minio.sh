@@ -13,7 +13,7 @@ profile_minio_run() {
 
     # --- storage workload sysctl ---------------------------------------------------
     sysctl_write_profile minio <<'EOF'
-# minio profile - managed by server-hardening
+# minio profile - managed by nutbolt
 fs.aio-max-nr = 1048576
 fs.file-max = 2097152
 vm.dirty_background_ratio = 5
@@ -21,14 +21,14 @@ vm.dirty_ratio = 15
 EOF
 
     # --- limits.conf ------------------------------------------------------------------
-    local f="/etc/security/limits.d/99-server-hardening-minio.conf"
+    local f="/etc/security/limits.d/99-nutbolt-minio.conf"
     [[ ! -f "$f" ]] && track_created "$f"
     : > "$f"
     local user
     for user in minio minio-user; do
         if id "$user" &>/dev/null; then
             {
-                echo "# managed by server-hardening - minio profile"
+                echo "# managed by nutbolt - minio profile"
                 echo "$user soft nofile $nofile"
                 echo "$user hard nofile $nofile"
             } >> "$f"

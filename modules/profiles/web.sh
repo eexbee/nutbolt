@@ -10,7 +10,7 @@ profile_web_run() {
 
     # --- network tuning (safe) -----------------------------------------------------
     sysctl_write_profile web <<'EOF'
-# web profile - managed by server-hardening
+# web profile - managed by nutbolt
 net.ipv4.tcp_max_syn_backlog = 65535
 net.core.netdev_max_backlog = 16384
 net.ipv4.ip_local_port_range = 10240 65535

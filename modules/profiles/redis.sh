@@ -12,14 +12,14 @@ profile_redis_run() {
 
     # --- required sysctl ------------------------------------------------------------
     sysctl_write_profile redis <<'EOF'
-# redis profile - managed by server-hardening (per Redis documentation)
+# redis profile - managed by nutbolt (per Redis documentation)
 vm.overcommit_memory = 1
 net.core.somaxconn = 65535
 EOF
 
     # --- disable THP -------------------------------------------------------------------
     if [[ -e /sys/kernel/mm/transparent_hugepage/enabled ]]; then
-        local thp_unit="/etc/systemd/system/hardening-disable-thp.service"
+        local thp_unit="/etc/systemd/system/nutbolt-disable-thp.service"
         [[ ! -f "$thp_unit" ]] && track_created "$thp_unit"
         cat > "$thp_unit" <<'EOF'
 [Unit]
@@ -34,8 +34,8 @@ ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/enabled'
 WantedBy=multi-user.target
 EOF
         run_quiet systemctl daemon-reload
-        run_quiet systemctl enable --now hardening-disable-thp.service
-        run_quiet systemctl restart hardening-disable-thp.service
+        run_quiet systemctl enable --now nutbolt-disable-thp.service
+        run_quiet systemctl restart nutbolt-disable-thp.service
         local thp
         thp="$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null | awk -F'[][]' '{print $2}')"
         log_ok "Transparent Huge Pages: ${thp:-unknown} ([never] expected)"

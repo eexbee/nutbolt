@@ -24,7 +24,7 @@ _updates_ubuntu() {
     local auto="/etc/apt/apt.conf.d/20auto-upgrades"
     [[ ! -f "$auto" ]] && track_created "$auto"
     cat > "$auto" <<'EOF'
-// managed by server-hardening
+// managed by nutbolt
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::Download-Upgradeable-Packages "1";
@@ -36,16 +36,16 @@ EOF
     if [[ -f "$uu" ]]; then
         backup_file_once "$uu"
         # comment out non-security origins (e.g. ${distro_codename}-updates)
-        sed -i -E 's/^(\s*)"?\$\{distro_id\}:\$\{distro_codename\}-updates"?;/\/\/\1removed by server-hardening (security-only);/' "$uu"
-        sed -i -E 's/^(\s*)"?\$\{distro_id\}:\$\{distro_codename\}-proposed"?;/\/\/\1removed by server-hardening (security-only);/' "$uu"
+        sed -i -E 's/^(\s*)"?\$\{distro_id\}:\$\{distro_codename\}-updates"?;/\/\/\1removed by nutbolt (security-only);/' "$uu"
+        sed -i -E 's/^(\s*)"?\$\{distro_id\}:\$\{distro_codename\}-proposed"?;/\/\/\1removed by nutbolt (security-only);/' "$uu"
     fi
 
     # never auto-reboot production servers
-    cat > /etc/apt/apt.conf.d/51hardening-noreboot <<'EOF'
-// managed by server-hardening - never reboot automatically
+    cat > /etc/apt/apt.conf.d/51nutbolt-noreboot <<'EOF'
+// managed by nutbolt - never reboot automatically
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
-    track_created /etc/apt/apt.conf.d/51hardening-noreboot
+    track_created /etc/apt/apt.conf.d/51nutbolt-noreboot
 
     # activate immediately
     run_quiet systemctl enable --now unattended-upgrades.service apt-daily.timer apt-daily-upgrade.timer

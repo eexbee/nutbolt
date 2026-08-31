@@ -15,21 +15,21 @@ profile_database_run() {
 
     # --- IO-related sysctl (conservative) --------------------------------------------
     sysctl_write_profile database <<'EOF'
-# database profile - managed by server-hardening
+# database profile - managed by nutbolt
 vm.swappiness = 10
 vm.dirty_background_ratio = 10
 vm.dirty_ratio = 20
 EOF
 
     # --- limits.conf per database user -------------------------------------------------
-    local f="/etc/security/limits.d/99-server-hardening-database.conf"
+    local f="/etc/security/limits.d/99-nutbolt-database.conf"
     [[ ! -f "$f" ]] && track_created "$f"
     : > "$f"
     local user
     for user in mysql postgres; do
         if id "$user" &>/dev/null; then
             {
-                echo "# managed by server-hardening - database profile"
+                echo "# managed by nutbolt - database profile"
                 echo "$user soft nofile $nofile"
                 echo "$user hard nofile $nofile"
                 echo "$user soft nproc  65535"

@@ -59,13 +59,12 @@ MODULES_ORDER=(user ssh firewall fail2ban clamav updates sysctl limits services)
 # ---------------------------------------------------------------- entry check
 print_banner() {
     cat <<'EOF'
- _____                             _____                    _
-/  ___|                           / ____|                  | |
-\ `--.  ___ _ ____   _____ _ __  | (___   ___  ___ _ __ ___| |__
- `--. \/ _ \ '__\ \ / / _ \ '__|  \___ \ / _ \/ __| '__/ _ \ '_ \
-/\__/ /  __/ |   \ V /  __/ |     ____) |  __/ (__| | |  __/ |_) |
-\____/ \___|_|    \_/ \___|_|    |_____/ \___|\___|_|  \___|_.__/
-            Production Linux Server Hardening Framework
+ _   _       _   _           _ _
+| \ | |_   _| |_| |__   ___ | | |_
+|  \| | | | | __| '_ \ / _ \| | __|
+| |\  | |_| | |_| |_) | (_) | | |_
+|_| \_|\__,_|\__|_.__/ \___/|_|\__|
+          Production Linux Server Hardening Framework
 EOF
 }
 
@@ -207,7 +206,12 @@ EOF
     fi
     echo ""
     log_info "Recommended next steps:"
-    log_info "  1. Verify SSH login: ssh $(config_get 'ssh.new_admin_user' '<user>')@<server-ip> -p $(config_get 'ssh.port' 22)"
+    local ip port user
+    ip="${SERVER_IP:-$(detect_server_ip)}"
+    [[ -z "$ip" ]] && ip="<server-ip>"
+    port="${SSH_NEW_PORT:-$(config_get 'ssh.port' 22)}"
+    user="${ADMIN_USERNAME:-$(config_get 'ssh.new_admin_user' '<user>')}"
+    log_info "  1. Verify SSH login: ssh ${user}@${ip} -p ${port}"
     log_info "  2. Run an audit:     sudo ./audit.sh"
     log_info "  3. Rollback if needed: sudo ./rollback.sh"
 }

@@ -21,12 +21,12 @@ module_limits_run() {
     profile_enabled minio    && (( minio > nofile )) && nofile="$minio"
     LIMITS_NOFILE="$nofile"
 
-    local f="/etc/security/limits.d/99-server-hardening.conf"
+    local f="/etc/security/limits.d/99-nutbolt.conf"
     [[ ! -f "$f" ]] && track_created "$f"
     backup_file_once /etc/security/limits.conf
 
     {
-        echo "# managed by server-hardening"
+        echo "# managed by nutbolt"
         echo "*    soft nofile $nofile"
         echo "*    hard nofile $nofile"
         echo "root soft nofile $nofile"
@@ -49,10 +49,10 @@ systemd_override_limit() {
     local unit="$1" nofile="$2"
     local dir="/etc/systemd/system/${unit}.d"
     mkdir -p "$dir"
-    local f="$dir/99-server-hardening.conf"
+    local f="$dir/99-nutbolt.conf"
     [[ ! -f "$f" ]] && track_created "$f"
     cat > "$f" <<EOF
-# managed by server-hardening - takes effect on next service restart
+# managed by nutbolt - takes effect on next service restart
 [Service]
 LimitNOFILE=$nofile
 EOF

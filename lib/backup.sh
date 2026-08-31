@@ -15,7 +15,7 @@ backup_init() {
     mkdir -p "$BACKUP_DIR/files"
     chmod 700 "$BACKUP_DIR"
     {
-        echo "# server-hardening backup manifest"
+        echo "# nutbolt backup manifest"
         echo "# created: $(date '+%Y-%m-%d %H:%M:%S')"
         echo "# host:    $(hostname)"
         echo "# format:  ACTION<TAB>PATH<TAB>BACKUP_RELATIVE_PATH"

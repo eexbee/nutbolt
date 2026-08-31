@@ -9,7 +9,7 @@
 # Profiles append their own file: /etc/sysctl.d/98-profile-<name>.conf
 # =============================================================================
 
-SYSCTL_FILE="/etc/sysctl.d/99-server-hardening.conf"
+SYSCTL_FILE="/etc/sysctl.d/99-nutbolt.conf"
 
 module_sysctl_run() {
     log_section "MODULE: Kernel settings (sysctl)"
@@ -20,7 +20,7 @@ module_sysctl_run() {
     [[ ! -f "$SYSCTL_FILE" ]] && track_created "$SYSCTL_FILE"
 
     cat > "$SYSCTL_FILE" <<'EOF'
-# managed by server-hardening - safe production defaults
+# managed by nutbolt - safe production defaults
 net.ipv4.tcp_syncookies = 1
 net.core.somaxconn = 65535
 fs.inotify.max_user_watches = 524288

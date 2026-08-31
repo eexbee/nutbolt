@@ -1,8 +1,8 @@
-# server-hardening
+# Nutbolt
 
-Production Linux server hardening framework: interactive single-server
-deployment, multi-server Ansible deployment, automatic discovery,
-YAML configuration, security auditing and rollback.
+Nutbolt - production Linux server hardening framework: interactive
+single-server deployment, multi-server Ansible deployment, automatic
+discovery, YAML configuration, security auditing and rollback.
 
 ## Supported operating systems
 
@@ -15,7 +15,7 @@ YAML configuration, security auditing and rollback.
 ## Quick start
 
 ```bash
-# 1. Copy the server-hardening/ directory to the target server, then:
+# 1. Copy the nutbolt/ directory to the target server, then:
 chmod +x *.sh lib/*.sh modules/*.sh modules/profiles/*.sh discovery/*.sh audit/*.sh
 
 # 2. (optional) discover what is running on the server

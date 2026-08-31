@@ -60,7 +60,7 @@ module_clamav_run() {
         local hour
         hour="$(config_get "security.clamav.daily_scan_hour" "3")"
         cat > "$cronfile" <<EOF
-# managed by server-hardening - daily ClamAV scan
+# managed by nutbolt - daily ClamAV scan
 0 $hour * * * root /usr/local/bin/security-scan / --quiet >> /var/log/security-scan.log 2>&1
 EOF
         chmod 644 "$cronfile"
@@ -93,7 +93,7 @@ _clamav_install_security_scan() {
     cat > "$scan_bin" <<EOF
 #!/usr/bin/env bash
 # =============================================================================
-# security-scan - ClamAV on-demand scanner installed by server-hardening
+# security-scan - ClamAV on-demand scanner installed by nutbolt
 # Runs with low CPU/IO priority (nice + ionice) to protect production load.
 # Usage:   security-scan [path]      (default: /)
 #          security-scan /www --quiet

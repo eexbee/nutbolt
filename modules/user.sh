@@ -19,18 +19,43 @@ module_user_run() {
         return 0
     fi
 
-    if id "$ADMIN_USERNAME" &>/dev/null; then
-        log_info "User '$ADMIN_USERNAME' already exists - ensuring privileges and key"
-    else
+    # --- create user (interactive retry when the name cannot be used) --------
+    local newly_created=0
+    while true; do
+        if id "$ADMIN_USERNAME" &>/dev/null; then
+            log_info "User '$ADMIN_USERNAME' already exists - ensuring privileges and key"
+            break
+        fi
+
         log_info "Creating user: $ADMIN_USERNAME"
-        useradd -m -s /bin/bash "$ADMIN_USERNAME"
-        if [[ $? -ne 0 ]]; then
-            log_error "Failed to create user '$ADMIN_USERNAME'"
-            register_error "user creation failed"
+        local uadd_err=""
+        if uadd_err="$(useradd -m -s /bin/bash "$ADMIN_USERNAME" 2>&1)"; then
+            log_ok "User created: $ADMIN_USERNAME"
+            newly_created=1
+            break
+        fi
+
+        log_error "Failed to create user '$ADMIN_USERNAME': ${uadd_err:-unknown useradd error}"
+        if [[ "$INTERACTIVE" != "1" ]]; then
+            register_error "user creation failed for '$ADMIN_USERNAME'"
             return 1
         fi
-        log_ok "User created: $ADMIN_USERNAME"
-    fi
+
+        log_info "The name is probably taken by an existing user or group - choose another one."
+        local retry=""
+        while true; do
+            retry="$(prompt "Enter another administrator username (empty to skip user creation)" "")"
+            [[ -z "$retry" ]] && break
+            validate_username "$retry" && break
+            log_error "Username must match ^[a-z_][a-z0-9_-]{0,31}$ (lowercase)"
+        done
+        if [[ -z "$retry" ]]; then
+            log_warn "User creation skipped - SSH lockdown will keep root login enabled"
+            ADMIN_USERNAME=""
+            return 1
+        fi
+        ADMIN_USERNAME="$retry"
+    done
 
     # --- sudo / wheel privileges -------------------------------------------------
     if [[ "$OS_FAMILY" == "debian" ]]; then
@@ -75,6 +100,19 @@ module_user_run() {
     if [[ "$ADMIN_KEY_INSTALLED" != "1" ]]; then
         log_warn "No SSH public key installed for '$ADMIN_USERNAME'"
         log_warn "PasswordAuthentication will NOT be disabled later without a key"
+        # A freshly created account has NO password and NO key - without one of
+        # them the operator cannot log in at all (e.g. for the SSH port test).
+        if (( newly_created )) && [[ "$INTERACTIVE" == "1" ]]; then
+            if confirm "Set a password for '$ADMIN_USERNAME' now so SSH login is possible?" "yes"; then
+                if passwd "$ADMIN_USERNAME"; then
+                    log_ok "Password set for '$ADMIN_USERNAME'"
+                else
+                    log_warn "Password not set - you will NOT be able to log in as '$ADMIN_USERNAME'"
+                fi
+            else
+                log_warn "No key and no password - you will NOT be able to log in as '$ADMIN_USERNAME'"
+            fi
+        fi
     fi
     return 0
 }

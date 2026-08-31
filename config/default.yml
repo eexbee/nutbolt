@@ -1,5 +1,5 @@
 # =============================================================================
-# server-hardening default configuration
+# nutbolt default configuration
 # Override per server: config/servers/<hostname>.yml
 # Or pass explicitly:  ./install.sh --config my-server.yml
 # =============================================================================

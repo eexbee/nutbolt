@@ -25,7 +25,7 @@ module_fail2ban_run() {
     # --- configuration ------------------------------------------------------------
     local jaildir="/etc/fail2ban/jail.d"
     mkdir -p "$jaildir"
-    local jailfile="$jaildir/99-server-hardening.local"
+    local jailfile="$jaildir/99-nutbolt.local"
     [[ ! -f "$jailfile" ]] && track_created "$jailfile"
 
     local banaction
@@ -38,7 +38,7 @@ module_fail2ban_run() {
     local ssh_port="${SSH_NEW_PORT:-$(config_get 'ssh.port' 22)}"
 
     {
-        echo "# managed by server-hardening"
+        echo "# managed by nutbolt"
         echo "[DEFAULT]"
         echo "bantime  = $bantime"
         echo "findtime = $findtime"
@@ -123,7 +123,7 @@ _fail2ban_ols_filter() {
     local f="/etc/fail2ban/filter.d/openlitespeed-auth.conf"
     [[ ! -f "$f" ]] && track_created "$f"
     cat > "$f" <<'EOF'
-# managed by server-hardening - OpenLiteSpeed auth failures
+# managed by nutbolt - OpenLiteSpeed auth failures
 [Definition]
 failregex = ^.*\[ERROR\].*(failed to login|auth.*fail|permission denied).*$
             ^.*"(GET|POST) /[^"]*" (401|403) .*$

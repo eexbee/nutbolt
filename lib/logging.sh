@@ -10,7 +10,7 @@ LOG_FILE=""
 
 logging_init() {
     mkdir -p "$LOG_DIR"
-    LOG_FILE="$LOG_DIR/hardening-$(date +%Y%m%d-%H%M%S).log"
+    LOG_FILE="$LOG_DIR/nutbolt-$(date +%Y%m%d-%H%M%S).log"
     : > "$LOG_FILE"
     chmod 600 "$LOG_FILE"
     log_info "Logging started: $LOG_FILE"
