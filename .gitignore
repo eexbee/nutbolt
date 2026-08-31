@@ -1,0 +1,7 @@
+reports/*
+!reports/.gitkeep
+backups/*
+!backups/.gitkeep
+config/generated/*
+!config/generated/.gitkeep
+*.log
