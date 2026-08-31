@@ -1,0 +1,57 @@
+# =============================================================================
+# server-hardening default configuration
+# Override per server: config/servers/<hostname>.yml
+# Or pass explicitly:  ./install.sh --config my-server.yml
+# =============================================================================
+
+ssh:
+  port: 22222
+  max_auth_tries: 5
+  disable_root_login: true
+  disable_password_auth: true
+  # new_admin_user: ""          # set here or you will be prompted
+  # admin_ssh_public_key: ""    # set here or you will be prompted
+
+firewall:
+  enabled: true
+  tcp_ports: [80, 443]          # you will be prompted in interactive mode
+  udp_ports: []
+
+security:
+  fail2ban:
+    enabled: true
+    maxretry: 5
+    bantime: 1h
+    findtime: 10m
+    protect_web: true           # enable nginx/apache/ols jails when detected
+  clamav:
+    enabled: true
+    daily_scan: false
+    daily_scan_hour: 3
+    exclude_defaults: true      # skip DB dirs, docker storage, minio data
+    exclude_paths: []           # additional exclusions, e.g. ["/backup"]
+  updates:
+    enabled: true               # SECURITY-ONLY updates
+
+profiles:
+  web:
+    enabled: false
+  database:
+    enabled: false
+  redis:
+    enabled: false
+  minio:
+    enabled: false
+  docker:
+    enabled: false
+    install: false              # install docker if missing (non-interactive mode)
+    log_max_size: 10m
+    log_max_file: "3"
+
+limits:
+  nofile_default: 65535
+  nofile_database: 100000
+  nofile_minio: 200000
+
+services:
+  disable: []                   # e.g. [avahi-daemon, cups] - never guessed for you

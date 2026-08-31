@@ -1,0 +1,29 @@
+# =============================================================================
+# Example per-server override file.
+# Copy to: config/servers/<hostname>.yml  (auto-loaded by install.sh)
+# Values here override config/default.yml
+# =============================================================================
+
+ssh:
+  port: 22222
+  new_admin_user: opsadmin
+  admin_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleExampleExample opsadmin@laptop"
+
+firewall:
+  tcp_ports: [80, 443, 3306, 6379, 9000, 9001]
+  udp_ports: []
+
+profiles:
+  web:
+    enabled: true
+  database:
+    enabled: true
+  redis:
+    enabled: true
+  minio:
+    enabled: true
+  docker:
+    enabled: true
+
+services:
+  disable: [avahi-daemon, cups]
