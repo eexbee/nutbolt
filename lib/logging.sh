@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
 # lib/logging.sh - Logging facility
-# Provides timestamped logging to console and logfile.
+# Provides timestamped logging to console (stderr) and logfile.
+# Console output goes to STDERR so that "func_which_logs" via $( ) command
+# substitution only captures real data on stdout, never log lines.
 # =============================================================================
 
 FRAMEWORK_ROOT="${FRAMEWORK_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -26,11 +28,11 @@ _log() {
         echo "$line" >> "$LOG_FILE" 2>/dev/null
     fi
     case "$level" in
-        ERROR) printf '\033[0;31m%s\033[0m\n' "$line" ;;
-        WARN)  printf '\033[0;33m%s\033[0m\n' "$line" ;;
-        OK)    printf '\033[0;32m%s\033[0m\n' "$line" ;;
-        INFO)  printf '%s\n' "$line" ;;
-        *)     printf '%s\n' "$line" ;;
+        ERROR) printf '\033[0;31m%s\033[0m\n' "$line" >&2 ;;
+        WARN)  printf '\033[0;33m%s\033[0m\n' "$line" >&2 ;;
+        OK)    printf '\033[0;32m%s\033[0m\n' "$line" >&2 ;;
+        INFO)  printf '%s\n' "$line" >&2 ;;
+        *)     printf '%s\n' "$line" >&2 ;;
     esac
 }
 
@@ -50,7 +52,7 @@ log_run() {
     if [[ -n "$out" ]]; then
         while IFS= read -r line; do
             [[ -n "$LOG_FILE" ]] && echo "[ $(_ts) ] [EXECOUT] $line" >> "$LOG_FILE"
-            [[ "${QUIET_EXEC:-0}" != "1" ]] && printf '  %s\n' "$line"
+            [[ "${QUIET_EXEC:-0}" != "1" ]] && printf '  %s\n' "$line" >&2
         done <<< "$out"
     fi
     if [[ $rc -ne 0 ]]; then
@@ -77,6 +79,6 @@ log_section() {
     local title="$1"
     local bar
     bar=$(printf '%*s' 72 '' | tr ' ' '=')
-    printf '\n%s\n  %s\n%s\n' "$bar" "$title" "$bar"
+    printf '\n%s\n  %s\n%s\n' "$bar" "$title" "$bar" >&2
     [[ -n "$LOG_FILE" ]] && printf '\n%s\n  %s\n%s\n' "$bar" "$title" "$bar" >> "$LOG_FILE"
 }

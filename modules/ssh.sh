@@ -133,20 +133,18 @@ module_ssh_run() {
         ssh_restart
         sleep 1
 
-        local server_ip login_user
-        server_ip="$(_ssh_server_ip)"
-        [[ -z "$server_ip" ]] && server_ip="<server-ip>"
+        local login_user
         login_user="${ADMIN_USERNAME:-root}"
-        _ssh_show_test_instructions "$new_port" "$server_ip" "$login_user"
+        _ssh_show_test_instructions "$new_port" "$login_user"
 
         local confirmed="no"
         if [[ "$INTERACTIVE" == "1" ]]; then
-            confirm "Can you successfully log in with: ssh ${login_user}@${server_ip} -p $new_port ?" "no"
+            confirm "Can you successfully log in with: ssh ${login_user}@<server-ip> -p $new_port ?" "no"
             confirmed=$?
         else
             # non-interactive: assume tested (operator is responsible)
             log_warn "Non-interactive mode: skipping login confirmation prompt"
-            log_warn "VERIFY NOW: ssh ${login_user}@${server_ip} -p $new_port"
+            log_warn "VERIFY NOW: ssh ${login_user}@<server-ip> -p $new_port"
             confirmed=0
         fi
 
@@ -245,21 +243,8 @@ module_ssh_lockdown() {
     log_ok "  Port: $SSH_NEW_PORT | MaxAuthTries: $(config_get 'ssh.max_auth_tries' 5) | RootLogin: $root_state | PasswordAuth: $pass_state"
 }
 
-_ssh_server_ip() { # resolves once per run (public IP preferred), cached in SERVER_IP
-    if [[ -z "${SERVER_IP+x}" ]]; then
-        SERVER_IP="$(detect_server_ip)"
-        export SERVER_IP
-        if [[ -n "$SERVER_IP" ]]; then
-            log_info "Server address for SSH verification: $SERVER_IP"
-        else
-            log_warn "Could not detect the server IP - replace <server-ip> manually"
-        fi
-    fi
-    echo "${SERVER_IP}"
-}
-
-_ssh_show_test_instructions() { # <port> <ip> <login_user>
-    local port="$1" ip="$2" login_user="$3"
+_ssh_show_test_instructions() { # <port> <login_user>
+    local port="$1" login_user="$2"
     local auth_hint
     if [[ -z "${ADMIN_USERNAME:-}" ]]; then
         auth_hint="No admin user was created - log in as root (still enabled at this point)."
@@ -273,8 +258,9 @@ _ssh_show_test_instructions() { # <port> <ip> <login_user>
 $(printf '\033[0;33m================================================================================\033[0m')
   IMPORTANT: Open ANOTHER terminal and test the new SSH port BEFORE continuing:
 
-      ssh ${login_user}@${ip} -p ${port}
+      ssh ${login_user}@<server-ip> -p ${port}
 
+  Replace <server-ip> with the address you use to reach this server.
   ${auth_hint}
   Keep your current session open. Only confirm when the new login WORKS.
 $(printf '\033[0;33m================================================================================\033[0m')

@@ -206,12 +206,10 @@ EOF
     fi
     echo ""
     log_info "Recommended next steps:"
-    local ip port user
-    ip="${SERVER_IP:-$(detect_server_ip)}"
-    [[ -z "$ip" ]] && ip="<server-ip>"
+    local port user
     port="${SSH_NEW_PORT:-$(config_get 'ssh.port' 22)}"
     user="${ADMIN_USERNAME:-$(config_get 'ssh.new_admin_user' '<user>')}"
-    log_info "  1. Verify SSH login: ssh ${user}@${ip} -p ${port}"
+    log_info "  1. Verify SSH login: ssh ${user}@<server-ip> -p ${port}"
     log_info "  2. Run an audit:     sudo ./audit.sh"
     log_info "  3. Rollback if needed: sudo ./rollback.sh"
 }
