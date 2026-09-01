@@ -4,9 +4,10 @@
 #
 # Phase 1: change port (old port kept open) + MaxAuthTries, validate, restart,
 #          then REQUIRE the operator to confirm login on the new port works.
-# Phase 2: only after confirmation -> PermitRootLogin no,
-#          PasswordAuthentication no (only when an admin key exists),
-#          PubkeyAuthentication yes.
+# Phase 1.5: only after confirmation -> remove the old port from sshd_config
+#          (and ssh.socket) so sshd listens on the new port only.
+# Phase 2: PermitRootLogin no, PasswordAuthentication no (only when an admin
+#          key exists), PubkeyAuthentication yes.
 #
 # Every change is validated with `sshd -t` BEFORE the service is restarted.
 # If validation fails the previous configuration is restored automatically.
@@ -162,6 +163,22 @@ module_ssh_run() {
         fi
         log_ok "Login confirmed on port $new_port"
         SSH_NEW_PORT="$new_port"
+        export SSH_NEW_PORT
+
+        # ---------------- phase 1.5: close the old port ----------------------
+        log_info "Removing old port $current_port (login on $new_port confirmed)"
+        sed -i -E '/^[[:space:]]*#?[[:space:]]*Port[[:space:]]/Id' "$SSHD_CONFIG"
+        printf 'Port %s\n' "$new_port" >> "$SSHD_CONFIG"
+        log_info "sshd_config: Port $new_port (old port $current_port removed)"
+        if ssh_socket_active; then ssh_socket_set_ports "$new_port"; fi
+
+        if ! sshd_validate; then
+            _ssh_restore_config
+            return 1
+        fi
+        ssh_restart
+        sleep 1
+        log_ok "sshd now listens on port $new_port only (port $current_port closed)"
     fi
 
     # ---------------- phase 2: lock down ------------------------------------------

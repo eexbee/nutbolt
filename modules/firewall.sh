@@ -2,8 +2,9 @@
 # =============================================================================
 # modules/firewall.sh - Firewall configuration
 # Ubuntu -> UFW, RHEL family -> firewalld
-# Default policy: deny incoming / allow outgoing. The SSH port (and the old
-# SSH port during migration) is ALWAYS allowed before the firewall is enabled.
+# Default policy: deny incoming / allow outgoing. The SSH port is ALWAYS
+# allowed before the firewall is enabled. The old SSH port (22) is only kept
+# open when the ssh module was skipped and may still be in use.
 # =============================================================================
 
 module_firewall_run() {
@@ -12,7 +13,10 @@ module_firewall_run() {
     config_get_bool "firewall.enabled" true || { log_info "Firewall disabled in config"; return 0; }
 
     local ssh_port="${SSH_NEW_PORT:-$(config_get 'ssh.port' 22)}"
-    local old_ssh_port="${SSH_OLD_PORT:-22}"
+    # Keep the old SSH port open ONLY when the ssh module did not complete a
+    # confirmed migration (it removes the old port itself, see ssh.sh phase 1.5).
+    local old_ssh_port=""
+    [[ -z "${SSH_NEW_PORT:-}" ]] && old_ssh_port="${SSH_OLD_PORT:-22}"
     local tcp_ports udp_ports
 
     if [[ "$INTERACTIVE" == "1" ]] && ! config_has "firewall.tcp_ports"; then
@@ -71,7 +75,7 @@ _firewall_ufw() {
     local p added=""
     # SSH first - never lock ourselves out
     ufw allow "$ssh_port"/tcp >/dev/null 2>&1 && added+=" $ssh_port/tcp"
-    [[ "$ssh_port" != "$old_port" ]] && { ufw allow "$old_port"/tcp >/dev/null 2>&1 && added+=" $old_port/tcp"; }
+    [[ -n "$old_port" && "$ssh_port" != "$old_port" ]] && { ufw allow "$old_port"/tcp >/dev/null 2>&1 && added+=" $old_port/tcp"; }
     echo "$added" > "$BACKUP_DIR/ufw-added-rules"
 
     for p in $tcp_ports; do
@@ -113,7 +117,7 @@ _firewall_firewalld() {
     local p added=""
     # SSH first
     firewall-cmd --permanent --add-port="$ssh_port/tcp" >/dev/null 2>&1 && added+=" $ssh_port/tcp"
-    [[ "$ssh_port" != "$old_port" ]] && { firewall-cmd --permanent --add-port="$old_port/tcp" >/dev/null 2>&1 && added+=" $old_port/tcp"; }
+    [[ -n "$old_port" && "$ssh_port" != "$old_port" ]] && { firewall-cmd --permanent --add-port="$old_port/tcp" >/dev/null 2>&1 && added+=" $old_port/tcp"; }
 
     for p in $tcp_ports; do
         [[ -z "$p" ]] && continue
