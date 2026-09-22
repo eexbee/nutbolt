@@ -4,6 +4,9 @@
 # Or pass explicitly:  ./install.sh --config my-server.yml
 # =============================================================================
 
+server:
+  # hostname: ""              # set here or you will be prompted
+
 ssh:
   port: 22222
   max_auth_tries: 5

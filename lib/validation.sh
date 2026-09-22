@@ -36,6 +36,18 @@ validate_path() {
     [[ "$1" =~ ^/ ]] && [[ "$1" != *..* ]]
 }
 
+validate_hostname() {
+    local h="$1"
+    [[ -z "$h" ]] && return 1
+    # single label or FQDN: labels are 1-63 chars, alphanumeric/hyphens, no leading/trailing hyphens
+    local IFS='.' label
+    for label in $h; do
+        [[ ${#label} -gt 63 ]] && return 1
+        [[ "$label" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]] || return 1
+    done
+    return 0
+}
+
 # prompt_until_valid "question" "validator_fn" [default] [error_msg]
 prompt_until_valid() {
     local question="$1" validator="$2" default="${3:-}" errmsg="${4:-Invalid value, try again.}" answer

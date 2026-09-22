@@ -98,6 +98,58 @@ initial_checks() {
     return 0
 }
 
+prompt_and_set_hostname() {
+    log_section "Hostname configuration"
+
+    local current_hostname
+    current_hostname="$(hostname)"
+
+    # In non-interactive mode, read from already-loaded config files (if any)
+    # We do a lightweight parse here since config_loader hasn't run yet.
+    local config_hostname=""
+    local cfg_files=("$FRAMEWORK_ROOT/config/default.yml")
+    [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]] && cfg_files+=("$CONFIG_FILE")
+    local f line
+    for f in "${cfg_files[@]}"; do
+        line="$(grep -E '^\s*hostname:\s*.+' "$f" 2>/dev/null | tail -1)"
+        if [[ -n "$line" ]]; then
+            config_hostname="${line#*:}"
+            config_hostname="${config_hostname#"${config_hostname%%[![:space:]]*}"}"
+            config_hostname="${config_hostname%"${config_hostname##*[![:space:]]}"}"
+            config_hostname="${config_hostname%\"}"
+            config_hostname="${config_hostname#\"}"
+        fi
+    done
+
+    local new_hostname
+    if [[ "$INTERACTIVE" == "1" ]]; then
+        new_hostname="$(prompt_until_valid "Server hostname" validate_hostname "$current_hostname" "Invalid hostname. Use alphanumeric characters and hyphens (e.g. web-prod-01).")"
+    else
+        new_hostname="$config_hostname"
+        if [[ -z "$new_hostname" ]]; then
+            log_error "Non-interactive mode requires 'server.hostname' in config"
+            exit 1
+        fi
+        if ! validate_hostname "$new_hostname"; then
+            log_error "Invalid hostname in config: $new_hostname"
+            exit 1
+        fi
+    fi
+
+    if [[ "$new_hostname" != "$current_hostname" ]]; then
+        if cmd_exists hostnamectl; then
+            run_quiet hostnamectl set-hostname "$new_hostname"
+        else
+            run_quiet hostname "$new_hostname"
+        fi
+        # Also update /etc/hostname directly for maximum compatibility
+        echo "$new_hostname" > /etc/hostname
+        log_ok "Hostname set: $current_hostname -> $new_hostname"
+    else
+        log_ok "Hostname already set: $current_hostname"
+    fi
+}
+
 load_configuration() {
     log_section "STEP 2/3: Configuration"
 
@@ -222,6 +274,7 @@ main() {
     initial_checks
     logging_init
 
+    prompt_and_set_hostname
     load_configuration
     select_profiles
     confirm_plan
